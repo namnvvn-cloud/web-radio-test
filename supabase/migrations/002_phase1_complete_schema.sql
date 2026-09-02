@@ -489,5 +489,10 @@ GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO authenticated;
 GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO authenticated;
 GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO authenticated;
 
--- Specific grants for vector operations
-GRANT USAGE ON SCHEMA vector TO authenticated;
+-- Note: no separate "vector" schema grant -- pgvector's CREATE EXTENSION
+-- above installs its types into the default search path (public on
+-- Supabase), not a schema literally named "vector". A GRANT against a
+-- nonexistent schema here would error and, since Supabase runs a
+-- multi-statement SQL Editor query as one implicit transaction, roll
+-- back every table created above it. Removed after hitting exactly
+-- this failure during deployment.

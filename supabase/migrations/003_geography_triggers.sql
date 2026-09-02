@@ -65,13 +65,10 @@ DROP TRIGGER IF EXISTS trg_logfiles_touch ON public.logfiles;
 CREATE TRIGGER trg_logfiles_touch BEFORE UPDATE ON public.logfiles
   FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
 
-DROP TRIGGER IF EXISTS trg_measurements_touch ON public.measurements;
-CREATE TRIGGER trg_measurements_touch BEFORE UPDATE ON public.measurements
-  FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
-
-DROP TRIGGER IF EXISTS trg_reports_touch ON public.reports;
-CREATE TRIGGER trg_reports_touch BEFORE UPDATE ON public.reports
-  FOR EACH ROW EXECUTE FUNCTION public.touch_updated_at();
+-- Note: measurements and reports do NOT have an updated_at column in the
+-- schema (both are insert-only / append-only by design) -- a touch trigger
+-- on either would error at runtime the first time a row is updated.
+-- Deliberately omitted.
 
 DROP TRIGGER IF EXISTS trg_subscriptions_touch ON public.subscriptions;
 CREATE TRIGGER trg_subscriptions_touch BEFORE UPDATE ON public.subscriptions
