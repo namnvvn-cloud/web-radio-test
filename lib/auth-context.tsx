@@ -23,43 +23,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
-    // Get initial session
-    const initializeAuth = async () => {
-      try {
-        const { data, error } = await supabase.auth.getSession()
-        if (error) throw error
-
-        setSession(data.session)
-        setUser(data.session?.user || null)
-
-        // Check if user is admin
-        if (data.session?.user) {
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', data.session.user.id)
-            .single()
-
-          setIsAdmin(profileData?.role === 'admin')
-        }
-      } catch (err) {
-        console.error('Auth initialization error:', err)
-        setError(err instanceof Error ? err.message : 'Failed to initialize auth')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    initializeAuth()
-
-    // Listen for auth changes
+    // onAuthStateChange fires once immediately with whatever session the
+    // SDK currently has (event 'INITIAL_SESSION'), once its own storage
+    // read finishes, and again on every later sign-in/sign-out/token
+    // refresh. Driving ALL state from this single subscription -- rather
+    // than also calling getSession() separately, as this used to -- avoids
+    // two independent async paths racing to set the same React state.
+    // That race was real: a stale/early 'INITIAL_SESSION' callback could
+    // fire *after* a fresh sign-in had already set the correct session via
+    // the separate getSession() call, clobbering it back to null and
+    // leaving the UI convinced no one was signed in even though a fully
+    // valid session was sitting in storage -- which sent every post-signin
+    // redirect straight back to /auth/signin.
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         setSession(newSession)
         setUser(newSession?.user || null)
         setError(null)
 
-        // Check if user is admin on auth state change
         if (newSession?.user) {
           const { data: profileData } = await supabase
             .from('profiles')
@@ -71,6 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else {
           setIsAdmin(false)
         }
+
+        setLoading(false)
       }
     )
 
