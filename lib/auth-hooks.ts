@@ -72,10 +72,21 @@ export function useSignIn() {
           throw new Error(data.error || 'Sign in failed')
         }
 
-        // Store session tokens in localStorage
-        if (data.session?.access_token) {
-          localStorage.setItem('access_token', data.session.access_token)
-          localStorage.setItem('refresh_token', data.session.refresh_token)
+        // Hand the tokens to the Supabase client SDK itself, so its own
+        // session storage (what supabase.auth.getSession() and
+        // onAuthStateChange read from) is populated. AuthContext relies
+        // on that SDK-managed session, not on any app-level storage --
+        // without this call, the API sign-in succeeds but the client
+        // still sees no session and every /user/* route bounces straight
+        // back to /auth/signin.
+        if (data.session?.access_token && data.session?.refresh_token) {
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          })
+          if (sessionError) {
+            throw sessionError
+          }
         }
 
         return {
