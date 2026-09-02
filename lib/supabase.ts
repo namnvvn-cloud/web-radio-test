@@ -2,13 +2,13 @@ import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-// Client-side Supabase client (for browser)
+// Client-side Supabase client (for browser). This file is imported by
+// client components, so it must only ever construct clients from
+// NEXT_PUBLIC_* env vars -- anything else evaluates to undefined in the
+// browser bundle and throws at module load. The service-role admin
+// client lives in ./supabase-admin.ts instead.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Server-side Supabase client (for API routes and server components)
-export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
 
 export type AppPing = {
   id: number

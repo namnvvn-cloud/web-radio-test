@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server'
-import { supabaseAdmin } from './supabase'
+import { supabaseAdmin } from './supabase-admin'
 import { User } from '@supabase/supabase-js'
 
 export type AuthResult =

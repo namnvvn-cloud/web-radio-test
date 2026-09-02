@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabaseAdmin } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAuth, logAudit } from '@/lib/api-auth'
 import { generateKML, generateExcel, generateCSV } from '@/lib/report-generators'
 import type { Logfile, Measurement } from '@/lib/types'
