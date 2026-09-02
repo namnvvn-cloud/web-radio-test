@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSignIn, useSignInGoogle } from '@/lib/auth-hooks'
+import { useAuth } from '@/lib/auth-context'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -9,6 +10,7 @@ export function SignInForm() {
   const router = useRouter()
   const { signIn, loading, error } = useSignIn()
   const { signInGoogle, loading: googleLoading } = useSignInGoogle()
+  const { isAuthenticated } = useAuth()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -22,6 +24,20 @@ export function SignInForm() {
     setFormError(null)
   }
 
+  // Navigate off the SDK's own onAuthStateChange-driven `isAuthenticated`
+  // flag rather than right after signIn() resolves. supabase.auth.setSession()
+  // (called inside useSignIn) notifies its subscribers -- which is what
+  // updates AuthContext -- asynchronously; router.push()'ing immediately
+  // after signIn() could beat that update, so UserLayout's own
+  // "not authenticated -> back to /auth/signin" guard would fire first and
+  // bounce the user straight back here. Gating on the context value itself
+  // means we only ever navigate once AuthContext has genuinely caught up.
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push('/user/dashboard')
+    }
+  }, [isAuthenticated, router])
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     setFormError(null)
@@ -33,11 +49,11 @@ export function SignInForm() {
 
     const result = await signIn(formData.email, formData.password)
 
-    if (result.success) {
-      router.push('/user/dashboard')
-    } else {
+    if (!result.success) {
       setFormError(result.error || 'Sign in failed')
     }
+    // On success, the useEffect above handles navigation once AuthContext
+    // reflects the new session -- see comment there.
   }
 
   const handleGoogleSignIn = async () => {
