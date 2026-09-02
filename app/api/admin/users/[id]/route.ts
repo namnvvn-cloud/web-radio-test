@@ -6,8 +6,10 @@ const VALID_ROLES = ['user', 'admin']
 const VALID_TIERS = ['free', 'pro']
 
 /**
- * PATCH /api/admin/users/[id] — update a user's role or subscription tier
- * Admin-only. Body: { role?: 'user' | 'admin', subscription_tier?: 'free' | 'pro' }
+ * PATCH /api/admin/users/[id] — update a user's role, subscription tier,
+ * or locked state.
+ * Admin-only. Body: { role?: 'user' | 'admin', subscription_tier?: 'free' | 'pro',
+ * is_locked?: boolean }
  * Every change is written to audit_log with before/after values.
  */
 export async function PATCH(
@@ -39,18 +41,28 @@ export async function PATCH(
       updates.subscription_tier = body.subscription_tier
     }
 
-    if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No valid fields to update (role, subscription_tier)' }, { status: 400 })
+    if (body.is_locked !== undefined) {
+      if (typeof body.is_locked !== 'boolean') {
+        return NextResponse.json({ error: 'is_locked must be a boolean' }, { status: 400 })
+      }
+      updates.is_locked = body.is_locked
     }
 
-    // Prevent admins from demoting themselves and getting locked out
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No valid fields to update (role, subscription_tier, is_locked)' }, { status: 400 })
+    }
+
+    // Prevent admins from demoting or locking themselves out
     if (id === auth.user.id && updates.role === 'user') {
       return NextResponse.json({ error: 'You cannot remove your own admin role' }, { status: 400 })
+    }
+    if (id === auth.user.id && updates.is_locked === true) {
+      return NextResponse.json({ error: 'You cannot lock your own account' }, { status: 400 })
     }
 
     const { data: before } = await supabaseAdmin
       .from('profiles')
-      .select('role, subscription_tier')
+      .select('role, subscription_tier, is_locked')
       .eq('id', id)
       .single()
 

@@ -9,6 +9,7 @@ export type UserProfile = {
   role: 'user' | 'admin'
   subscription_tier: 'free' | 'pro'
   nha_mang_mac_dinh: string
+  is_locked: boolean
   created_at: string
   updated_at: string
 }

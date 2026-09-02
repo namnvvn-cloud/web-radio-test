@@ -27,6 +27,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Reject locked accounts. Supabase Auth has already verified the
+    // password by this point (correct credentials for a locked account
+    // still reach here) -- is_locked is an app-level gate on top of that,
+    // set by an admin via /admin/users. Checked after auth, not before,
+    // so a wrong password on a locked account still reports "invalid
+    // email or password" rather than leaking that the account exists.
+    if (data.user) {
+      const { data: profile } = await supabaseAdmin
+        .from('profiles')
+        .select('is_locked')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profile?.is_locked) {
+        return NextResponse.json(
+          { error: 'This account has been locked. Contact support.' },
+          { status: 403 }
+        )
+      }
+    }
+
     // Log successful sign in
     if (data.user) {
       await supabaseAdmin.from('audit_log').insert({
