@@ -41,6 +41,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(newSession?.user || null)
         setError(null)
 
+        // middleware.ts guards /user/* and /admin/* by looking for a
+        // `sb-access-token` cookie -- it runs on the Edge before any client
+        // JS, so it can't see the Supabase SDK's own session (which lives
+        // in localStorage, not a cookie). Nothing else in the app ever wrote
+        // that cookie, so middleware always saw it missing and bounced
+        // every navigation to /user/* or /admin/* back to /auth/signin,
+        // regardless of whether the SDK session was valid. Keeping the
+        // cookie in sync here -- on every auth event, including the
+        // INITIAL_SESSION fired on first mount -- covers email/password
+        // sign-in, Google OAuth, token refresh, and sign-out in one place.
+        if (newSession?.access_token) {
+          const maxAge = newSession.expires_in ?? 3600
+          const secure = window.location.protocol === 'https:' ? '; Secure' : ''
+          document.cookie = `sb-access-token=${newSession.access_token}; path=/; max-age=${maxAge}; SameSite=Lax${secure}`
+        } else {
+          document.cookie = 'sb-access-token=; path=/; max-age=0'
+        }
+
         if (newSession?.user) {
           const { data: profileData } = await supabase
             .from('profiles')
