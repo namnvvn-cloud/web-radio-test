@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAdmin } from '@/lib/api-auth'
+import { applyUserFilters, parseUserFilters } from '@/lib/admin-user-filters'
 
 /**
  * GET /api/admin/users — list all platform users
- * Admin-only. Query params: page, limit, search (matches email or full_name)
+ * Admin-only. Query params: page, limit, search (matches email or full_name),
+ * tier ('free'|'pro'), status ('active'|'locked'), from/to (registration date
+ * range, YYYY-MM-DD) — see lib/admin-user-filters.ts. The same filters drive
+ * /api/admin/users/export so the Excel export always matches the page.
  */
 export async function GET(request: NextRequest) {
   const auth = await requireAdmin(request)
@@ -15,7 +19,7 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1)
   const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '25', 10) || 25))
-  const search = searchParams.get('search')?.trim()
+  const filters = parseUserFilters(searchParams)
 
   let query = supabaseAdmin
     .from('profiles')
@@ -23,9 +27,7 @@ export async function GET(request: NextRequest) {
     .order('created_at', { ascending: false })
     .range((page - 1) * limit, page * limit - 1)
 
-  if (search) {
-    query = query.or(`email.ilike.%${search}%,full_name.ilike.%${search}%`)
-  }
+  query = applyUserFilters(query, filters)
 
   const { data, error, count } = await query
 
