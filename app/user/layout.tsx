@@ -32,6 +32,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
     { href: '/user/measurements', label: 'Measurements', icon: '📡' },
     { href: '/user/sessions', label: 'Phiên đo', icon: '📶' },
     { href: '/user/reports', label: 'Reports', icon: '📄' },
+    { href: '/user/upgrade', label: 'Nâng cấp gói', icon: '⭐' },
     { href: '/user/profile', label: 'Profile', icon: '👤' },
   ]
 
