@@ -208,3 +208,44 @@ export type ApiResponse<T> = {
   error?: string
   message?: string
 }
+
+/**
+ * Measurement session type (session_id-based flow used by the RadioTest
+ * Android app: /api/measurements/session/start, /api/measurements/upload,
+ * /api/measurements/session/end — separate from the older Logfile flow)
+ */
+export type MeasurementSession = {
+  id: string
+  mode: string | null
+  status: string | null
+  cell_file_used: boolean | null
+  started_at: string | null
+  ended_at: string | null
+  measurement_count: number | null
+}
+
+/**
+ * One measurement row within a MeasurementSession. cell_id and
+ * serving_cell_id are bigint in the database but come back from the API
+ * as strings (BigInt is not JSON-serializable).
+ */
+export type MeasurementRow = {
+  id: number
+  timestamp: string
+  cell_id: string | null
+  pci: number | null
+  earfcn: number | null
+  nrarfcn: number | null
+  band: number | null
+  rat: string | null
+  bandwidth: number | null
+  rsrp: number | null
+  rsrq: number | null
+  sinr: number | null
+  ta: number | null
+  latitude: number | null
+  longitude: number | null
+  accuracy: number | null
+  mcc_mnc: string | null
+  serving_cell_id: string | null
+}
