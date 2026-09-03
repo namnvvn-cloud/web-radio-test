@@ -98,6 +98,40 @@ curl -X POST https://your-vercel-domain.vercel.app/api/pings \
   -d '{"sessionId": "test-id"}'
 ```
 
+## Phase 3: Payment gateways (MoMo / VNPay) — scaffold, inactive
+
+Code is complete (`lib/payment/momo.ts`, `lib/payment/vnpay.ts`,
+`app/api/subscriptions/*`, `/user/upgrade`) but does nothing until the
+merchant env vars below are set in Vercel — **never commit these to the
+repo, it is PUBLIC.** With any of them unset, `create-order` returns
+HTTP 503 and the upgrade buttons show "chờ merchant keys".
+
+MoMo (get from https://business.momo.vn, "Cổng thanh toán" → API keys):
+   - MOMO_PARTNER_CODE
+   - MOMO_ACCESS_KEY
+   - MOMO_SECRET_KEY
+   - MOMO_ENDPOINT (optional — defaults to MoMo's sandbox; set to
+     `https://payment.momo.vn/v2/gateway/api/create` for production)
+   - MOMO_REDIRECT_URL / MOMO_IPN_URL (optional — default to
+     `NEXT_PUBLIC_SITE_URL` + `/user/upgrade/result` / `/api/subscriptions/momo/ipn`)
+
+VNPay (get from VNPay merchant portal after ký hợp đồng):
+   - VNPAY_TMN_CODE
+   - VNPAY_HASH_SECRET
+   - VNPAY_ENDPOINT (optional — defaults to VNPay's sandbox; set to
+     `https://vnpayment.vn/paymentv2/vpcpay.html` for production)
+   - VNPAY_RETURN_URL (optional — defaults to `NEXT_PUBLIC_SITE_URL` + `/user/upgrade/result`)
+
+Also set once merchant keys exist:
+   - NEXT_PUBLIC_SITE_URL=https://web-radio-test.vercel.app
+
+Then in each gateway's merchant portal, register the IPN/webhook URL:
+   - MoMo: `https://web-radio-test.vercel.app/api/subscriptions/momo/ipn`
+   - VNPay: `https://web-radio-test.vercel.app/api/subscriptions/vnpay/ipn`
+
+Giá gói Pro hiện là placeholder (`lib/payment/plans.ts`, 99.000đ/30 ngày) —
+cần anh Nam xác nhận giá thật trước khi kích hoạt gateway.
+
 ## Phase 2 & 3: Future
 
 See SOP_WebRadioTest_v1.2.md for upcoming phases.
