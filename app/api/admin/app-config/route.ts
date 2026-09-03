@@ -42,6 +42,14 @@ export async function GET(request: NextRequest) {
       updatedAt = row.updated_at
     }
   }
+  // app_config.updated_at is a `timestamp without time zone` column, but
+  // every write stores new Date().toISOString() (UTC). PostgREST
+  // serializes it back without a trailing offset, which makes
+  // `new Date(...)` on the client mis-parse it as local time. Values are
+  // always UTC, so normalize before returning.
+  if (updatedAt && !/[zZ]|[+-]\d\d:\d\d$/.test(updatedAt)) {
+    updatedAt = `${updatedAt}Z`
+  }
 
   return NextResponse.json({
     success: true,
