@@ -129,5 +129,12 @@ export async function PUT(request: NextRequest) {
     after: values,
   })
 
-  return NextResponse.json({ success: true, ...values, updated_at: now })
+  return NextResponse.json({
+    success: true,
+    minVersionCode,
+    latestVersionCode,
+    downloadUrl,
+    notes,
+    updated_at: now,
+  })
 }
