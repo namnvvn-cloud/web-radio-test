@@ -1,5 +1,5 @@
 import ExcelJS from 'exceljs'
-import type { Logfile, Measurement } from './types'
+import type { Logfile, Measurement, UserProfile } from './types'
 
 function escapeXml(value: string): string {
   return value
@@ -172,6 +172,62 @@ export async function generateExcel(
       sinr: m.sinr,
       download_speed_mbps: m.download_speed_mbps,
       upload_speed_mbps: m.upload_speed_mbps,
+    })
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer()
+  return Buffer.from(buffer)
+}
+
+export type UserExportRow = UserProfile & {
+  cellfiles_count: number
+  logfiles_count: number
+  reports_count: number
+}
+
+/**
+ * Generate the Admin Users Excel export (Phase-2 "Export Excel danh sách
+ * user"). One row per user, matching exactly the columns shown in
+ * /admin/users so the download is a faithful copy of whatever
+ * search/filter the admin currently has applied — see
+ * app/api/admin/users/export/route.ts.
+ */
+export async function generateUsersExcel(users: UserExportRow[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook()
+  workbook.creator = 'Web Radio Test'
+  workbook.created = new Date()
+
+  const sheet = workbook.addWorksheet('Users')
+  sheet.columns = [
+    { header: 'Email', key: 'email', width: 30 },
+    { header: 'Full name', key: 'full_name', width: 24 },
+    { header: 'Phone', key: 'phone_number', width: 16 },
+    { header: 'Operator', key: 'nha_mang_mac_dinh', width: 14 },
+    { header: 'Tier', key: 'subscription_tier', width: 10 },
+    { header: 'Role', key: 'role', width: 10 },
+    { header: 'Status', key: 'status', width: 10 },
+    { header: 'Cellfiles', key: 'cellfiles_count', width: 10 },
+    { header: 'Logfiles', key: 'logfiles_count', width: 10 },
+    { header: 'Reports', key: 'reports_count', width: 10 },
+    { header: 'Registered', key: 'created_at', width: 20 },
+    { header: 'Last updated', key: 'updated_at', width: 20 },
+  ]
+  sheet.getRow(1).font = { bold: true }
+
+  for (const u of users) {
+    sheet.addRow({
+      email: u.email,
+      full_name: u.full_name || '-',
+      phone_number: u.phone_number || '-',
+      nha_mang_mac_dinh: u.nha_mang_mac_dinh,
+      subscription_tier: u.subscription_tier,
+      role: u.role,
+      status: u.is_locked ? 'Locked' : 'Active',
+      cellfiles_count: u.cellfiles_count,
+      logfiles_count: u.logfiles_count,
+      reports_count: u.reports_count,
+      created_at: new Date(u.created_at).toLocaleString(),
+      updated_at: new Date(u.updated_at).toLocaleString(),
     })
   }
 
