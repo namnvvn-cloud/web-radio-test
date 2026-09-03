@@ -47,6 +47,42 @@ export async function GET(request: NextRequest) {
   const loginSuccesses = pings.filter((p) => p.event === 'login_success').length
   const heartbeats = pings.filter((p) => p.event === 'heartbeat').length
 
+  // Phase 2 — registrations + app opens per day (last 30 days), for the
+  // dashboard chart. Built from the same 30-day ping window above plus a
+  // matching profiles.created_at query, bucketed client-side by UTC date
+  // (both queries are already capped/small, so no need for a SQL RPC).
+  const { data: recentSignups } = await supabaseAdmin
+    .from('profiles')
+    .select('created_at')
+    .gte('created_at', thirtyDaysAgo)
+    .limit(50000)
+
+  const dateKey = (iso: string) => iso.slice(0, 10) // YYYY-MM-DD (UTC)
+
+  const days: string[] = []
+  for (let i = 29; i >= 0; i--) {
+    days.push(dateKey(new Date(Date.now() - i * 24 * 60 * 60 * 1000).toISOString()))
+  }
+
+  const signupsByDay = new Map<string, number>()
+  for (const row of recentSignups || []) {
+    const k = dateKey(row.created_at)
+    signupsByDay.set(k, (signupsByDay.get(k) || 0) + 1)
+  }
+
+  const opensByDay = new Map<string, number>()
+  for (const p of pings) {
+    if (p.event !== 'open') continue
+    const k = dateKey(p.created_at)
+    opensByDay.set(k, (opensByDay.get(k) || 0) + 1)
+  }
+
+  const daily_series = days.map((date) => ({
+    date,
+    registrations: signupsByDay.get(date) || 0,
+    app_opens: opensByDay.get(date) || 0,
+  }))
+
   // Recent audit log
   const { data: recentAudit } = await supabaseAdmin
     .from('audit_log')
@@ -69,6 +105,7 @@ export async function GET(request: NextRequest) {
         heartbeats: heartbeats,
       },
       recent_audit_log: recentAudit || [],
+      daily_series,
     },
   })
 }
