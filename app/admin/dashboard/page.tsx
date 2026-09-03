@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { apiFetch } from '@/lib/api-client'
+import DailySeriesChart, { type DailyPoint } from '@/components/DailySeriesChart'
 
 type AdminStats = {
   total_users: number
@@ -23,6 +24,7 @@ type AdminStats = {
     created_at: string
     details: Record<string, unknown> | null
   }>
+  daily_series: DailyPoint[]
 }
 
 export default function AdminDashboardPage() {
@@ -103,6 +105,18 @@ export default function AdminDashboardPage() {
             <p className="text-sm text-gray-600">Heartbeats</p>
           </div>
         </div>
+      </div>
+
+      {/* Phase 2 — registrations/usage trend chart */}
+      <div className="rounded-lg bg-white p-6 shadow">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Đăng ký &amp; sử dụng theo ngày (30 ngày gần nhất)</h2>
+        {loading ? (
+          <p className="text-gray-500 text-center py-8">Loading…</p>
+        ) : !stats?.daily_series || stats.daily_series.length === 0 ? (
+          <p className="text-gray-500 text-center py-8">Chưa có dữ liệu</p>
+        ) : (
+          <DailySeriesChart data={stats.daily_series} />
+        )}
       </div>
 
       {/* Recent Admin Actions */}
