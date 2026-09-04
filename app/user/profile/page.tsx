@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '@/lib/auth-context'
 import { apiFetch } from '@/lib/api-client'
 import { usePasswordReset } from '@/lib/auth-hooks'
+import { updatePassword } from '@/lib/auth'
 import type { UserProfile } from '@/lib/types'
 
 const VALID_OPERATORS = [
@@ -23,6 +24,15 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState('')
   const [phone, setPhone] = useState('')
   const [operator, setOperator] = useState('MobiFone')
+
+  // Đổi mật khẩu trực tiếp -- trước đây trang này chỉ có nút gửi email reset
+  // link, phải rời khỏi app + mở email + bấm link mới đổi được. Với tài
+  // khoản admin bootstrap bằng mật khẩu tạm, cần đổi ngay tại chỗ không qua
+  // email. lib/auth.ts đã có sẵn updatePassword() (gọi supabase.auth.updateUser)
+  // nhưng chưa từng được UI nào dùng tới (04/09/2026).
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [changingPassword, setChangingPassword] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -55,6 +65,28 @@ export default function ProfilePage() {
       setMessage({ type: 'error', text: res.error || 'Update failed' })
     }
     setSaving(false)
+  }
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 6) {
+      setMessage({ type: 'error', text: 'Mật khẩu mới phải có ít nhất 6 ký tự' })
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage({ type: 'error', text: 'Mật khẩu xác nhận không khớp' })
+      return
+    }
+    setChangingPassword(true)
+    setMessage(null)
+    const result = await updatePassword(newPassword)
+    if (result.success) {
+      setMessage({ type: 'success', text: 'Đổi mật khẩu thành công' })
+      setNewPassword('')
+      setConfirmPassword('')
+    } else {
+      setMessage({ type: 'error', text: result.error || 'Đổi mật khẩu thất bại' })
+    }
+    setChangingPassword(false)
   }
 
   const handlePasswordReset = async () => {
@@ -138,17 +170,49 @@ export default function ProfilePage() {
       </div>
 
       <div className="rounded-lg bg-white p-6 shadow space-y-4">
-        <h2 className="text-lg font-semibold text-gray-900">Password</h2>
-        <p className="text-sm text-gray-600">
-          We&apos;ll email a password reset link to {profile?.email}.
-        </p>
+        <h2 className="text-lg font-semibold text-gray-900">Đổi mật khẩu</h2>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu mới</label>
+          <input
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Ít nhất 6 ký tự"
+            autoComplete="new-password"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Xác nhận mật khẩu mới</label>
+          <input
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            placeholder="Nhập lại mật khẩu mới"
+            autoComplete="new-password"
+          />
+        </div>
         <button
-          onClick={handlePasswordReset}
-          disabled={resetLoading}
-          className="w-full rounded-lg bg-gray-700 px-4 py-2 font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          onClick={handleChangePassword}
+          disabled={changingPassword || !newPassword || !confirmPassword}
+          className="w-full rounded-lg bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
         >
-          {resetLoading ? 'Sending…' : 'Send Password Reset Email'}
+          {changingPassword ? 'Đang đổi mật khẩu…' : 'Đổi mật khẩu'}
         </button>
+
+        <div className="pt-4 border-t border-gray-200">
+          <p className="text-sm text-gray-600 mb-2">
+            Hoặc gửi link đặt lại mật khẩu qua email tới {profile?.email}.
+          </p>
+          <button
+            onClick={handlePasswordReset}
+            disabled={resetLoading}
+            className="w-full rounded-lg bg-gray-700 px-4 py-2 font-medium text-white hover:bg-gray-800 disabled:opacity-50"
+          >
+            {resetLoading ? 'Sending…' : 'Send Password Reset Email'}
+          </button>
+        </div>
       </div>
     </div>
   )
