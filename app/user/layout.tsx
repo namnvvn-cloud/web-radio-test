@@ -7,7 +7,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading, isAuthenticated } = useAuth()
+  const { user, loading, isAuthenticated, isAdmin } = useAuth()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const { signOut, loading: signingOut } = useSignOut()
@@ -64,6 +64,15 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
+          {isAdmin && (
+            <Link
+              href="/admin/dashboard"
+              className="flex items-center gap-3 px-4 py-2 rounded-lg bg-red-700 hover:bg-red-600 transition-colors mb-2"
+            >
+              <span className="text-xl">🛡️</span>
+              {sidebarOpen && <span className="font-medium">Admin Panel</span>}
+            </Link>
+          )}
           {navItems.map((item) => (
             <Link
               key={item.href}
