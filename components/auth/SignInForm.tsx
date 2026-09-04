@@ -10,7 +10,7 @@ export function SignInForm() {
   const router = useRouter()
   const { signIn, loading, error } = useSignIn()
   const { signInGoogle, loading: googleLoading } = useSignInGoogle()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isAdmin, loading: authLoading } = useAuth()
 
   const [formData, setFormData] = useState({
     email: '',
@@ -32,11 +32,18 @@ export function SignInForm() {
   // "not authenticated -> back to /auth/signin" guard would fire first and
   // bounce the user straight back here. Gating on the context value itself
   // means we only ever navigate once AuthContext has genuinely caught up.
+  //
+  // Also gate on authLoading, not just isAuthenticated: AuthContext sets
+  // `user` (which drives isAuthenticated) synchronously but resolves
+  // `isAdmin` afterwards from a separate profiles lookup, only clearing
+  // `loading` once that resolves. Redirecting on isAuthenticated alone was
+  // a race -- it could fire before isAdmin was known, always sending admin
+  // accounts to /user/dashboard same as everyone else (04/09/2026).
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/user/dashboard')
+    if (!authLoading && isAuthenticated) {
+      router.push(isAdmin ? '/admin/dashboard' : '/user/dashboard')
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, isAdmin, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
