@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import { useSignOut } from '@/lib/auth-hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -9,6 +10,14 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
   const { user, loading, isAuthenticated } = useAuth()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { signOut, loading: signingOut } = useSignOut()
+
+  // Nút "Sign Out" trước đây không có onClick -- bấm không có phản ứng gì,
+  // không cách nào đăng xuất để đăng nhập tài khoản khác (04/09/2026).
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/auth/signin')
+  }
 
   if (loading) {
     return (
@@ -74,8 +83,12 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               <p className="font-medium truncate">{user?.email}</p>
             </div>
           )}
-          <button className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm font-medium">
-            Sign Out
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 rounded-lg text-sm font-medium"
+          >
+            {signingOut ? 'Đang đăng xuất...' : 'Sign Out'}
           </button>
         </div>
       </aside>
