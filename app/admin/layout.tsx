@@ -74,6 +74,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
+          <Link
+            href="/user/dashboard"
+            className="flex items-center gap-3 px-4 py-2 rounded-lg bg-red-800 hover:bg-red-700 transition-colors mb-2"
+          >
+            <span className="text-xl">↩️</span>
+            {sidebarOpen && <span className="font-medium">My Dashboard</span>}
+          </Link>
           {navItems.map((item) => (
             <Link
               key={item.href}
