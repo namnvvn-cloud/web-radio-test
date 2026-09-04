@@ -1,6 +1,7 @@
 'use client'
 
 import { useAuth } from '@/lib/auth-context'
+import { useSignOut } from '@/lib/auth-hooks'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Link from 'next/link'
@@ -9,6 +10,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, loading, isAuthenticated, isAdmin } = useAuth()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { signOut, loading: signingOut } = useSignOut()
+
+  // Nút "Sign Out" trước đây không có onClick -- cùng bug với app/user/layout.tsx (04/09/2026).
+  const handleSignOut = async () => {
+    await signOut()
+    router.push('/auth/signin')
+  }
 
   if (loading) {
     return (
@@ -85,8 +93,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <p className="font-medium truncate">{user?.email}</p>
             </div>
           )}
-          <button className="w-full px-4 py-2 bg-red-700 hover:bg-red-600 rounded-lg text-sm font-medium">
-            Sign Out
+          <button
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="w-full px-4 py-2 bg-red-700 hover:bg-red-600 disabled:opacity-60 rounded-lg text-sm font-medium"
+          >
+            {signingOut ? 'Đang đăng xuất...' : 'Sign Out'}
           </button>
         </div>
       </aside>
