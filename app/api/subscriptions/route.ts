@@ -3,7 +3,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAuth } from '@/lib/api-auth'
 import { isMomoConfigured } from '@/lib/payment/momo'
 import { isVnpayConfigured } from '@/lib/payment/vnpay'
-import { PRO_PLAN } from '@/lib/payment/plans'
+import { PRO_PLAN, getPaymentSettings } from '@/lib/payment/plans'
 
 /**
  * GET /api/subscriptions — current user's latest subscription row (if
@@ -15,6 +15,8 @@ export async function GET(request: NextRequest) {
   if (!auth.authenticated) {
     return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
+
+  const settings = await getPaymentSettings()
 
   const [{ data, error }, { data: profile, error: profileError }] = await Promise.all([
     supabaseAdmin
@@ -39,7 +41,8 @@ export async function GET(request: NextRequest) {
     // `failed` newest row must not make an existing Pro user look Free).
     currentTier: profile?.subscription_tier || 'free',
     subscription: data,
-    plan: PRO_PLAN,
+    plan: { ...PRO_PLAN, amountVnd: settings.monthlyPriceVnd },
+    paymentEnabled: settings.paymentEnabled,
     gateways: {
       momo: isMomoConfigured(),
       vnpay: isVnpayConfigured(),

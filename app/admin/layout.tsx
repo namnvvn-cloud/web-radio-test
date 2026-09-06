@@ -52,6 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { href: '/admin/dashboard', label: 'Dashboard', icon: '📊' },
     { href: '/admin/benchmarks', label: 'Benchmarks', icon: '📈' },
     { href: '/admin/users', label: 'Users', icon: '👥' },
+    { href: '/admin/payments', label: 'Thanh toán', icon: '💳' },
     { href: '/admin/settings', label: 'Settings', icon: '⚙️' },
   ]
 

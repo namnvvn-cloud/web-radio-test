@@ -3,19 +3,17 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { requireAuth } from '@/lib/api-auth'
 import { createMomoOrder, isMomoConfigured } from '@/lib/payment/momo'
 import { createVnpayOrder, isVnpayConfigured } from '@/lib/payment/vnpay'
-import { PRO_PLAN } from '@/lib/payment/plans'
+import { getPaymentSettings } from '@/lib/payment/plans'
 
 /**
  * POST /api/subscriptions/create-order — start a Pro upgrade payment.
  * Body: { method: 'momo' | 'vnpay' }
  *
- * Creates a `pending` subscriptions row, then asks the chosen gateway
- * for a payUrl to redirect the user to. Both gateways are inactive
- * scaffolds: if merchant keys are not set in env vars, this returns 503
- * with a clear Vietnamese message instead of calling out with garbage
- * credentials. Nothing here changes subscription_tier — that only
- * happens once the gateway's IPN/webhook confirms payment (see
- * /api/subscriptions/momo/ipn and /api/subscriptions/vnpay/ipn).
+ * Giá lấy từ payment_settings (Admin > Thanh toán), KHÔNG còn hằng số
+ * cứng — xem lib/payment/plans.ts#getPaymentSettings. Cả 2 cổng vẫn là
+ * scaffold: thiếu merchant key trong env thì trả 503 thay vì gọi ra
+ * ngoài với credential rỗng. Chưa đổi subscription_tier ở đây — việc đó
+ * chỉ xảy ra khi IPN xác nhận (xem .../momo/ipn, .../vnpay/ipn).
  */
 export async function POST(request: NextRequest) {
   const auth = await requireAuth(request)
@@ -35,6 +33,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "method must be 'momo' or 'vnpay'" }, { status: 400 })
   }
 
+  const settings = await getPaymentSettings()
+  if (!settings.paymentEnabled) {
+    return NextResponse.json(
+      { error: 'Hệ thống đang mở miễn phí toàn bộ tính năng, chưa cần thanh toán.' },
+      { status: 409 }
+    )
+  }
+
   if (method === 'momo' && !isMomoConfigured()) {
     return NextResponse.json(
       { error: 'Cổng thanh toán MoMo chưa được kích hoạt (đang chờ merchant keys).' },
@@ -48,14 +54,16 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const amountVnd = settings.monthlyPriceVnd
+
   const { data: row, error: insertError } = await supabaseAdmin
     .from('subscriptions')
     .insert({
       user_id: auth.user.id,
-      subscription_tier: PRO_PLAN.tier,
+      subscription_tier: 'pro',
       payment_method: method,
       payment_status: 'pending',
-      amount_paid: PRO_PLAN.amountVnd,
+      amount_paid: amountVnd,
     })
     .select()
     .single()
@@ -70,7 +78,7 @@ export async function POST(request: NextRequest) {
   if (method === 'momo') {
     const result = await createMomoOrder({
       orderId: String(row.id),
-      amount: PRO_PLAN.amountVnd,
+      amount: amountVnd,
       orderInfo,
     })
     if (!result.ok) {
@@ -89,7 +97,7 @@ export async function POST(request: NextRequest) {
     request.headers.get('x-forwarded-for')?.split(',')[0].trim() || request.headers.get('x-real-ip') || '127.0.0.1'
   const result = createVnpayOrder({
     txnRef: `${row.id}-${Date.now()}`,
-    amount: PRO_PLAN.amountVnd,
+    amount: amountVnd,
     orderInfo,
     ipAddr,
   })

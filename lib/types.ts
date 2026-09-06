@@ -249,3 +249,28 @@ export type MeasurementRow = {
   mcc_mnc: string | null
   serving_cell_id: string | null
 }
+
+/**
+ * payment_requests row -- 1 lần user báo "đã thanh toán" cho một
+ * phương thức không có webhook tự động (bank_transfer luôn; momo/vnpay/
+ * atm_card/visa cũng dùng bảng này cho tới khi có merchant key thật).
+ * Admin duyệt tay tại Admin > Thanh toán.
+ */
+export type PaymentRequest = {
+  id: string
+  user_id: string
+  method: 'bank_transfer' | 'momo' | 'vnpay' | 'atm_card' | 'visa'
+  bank_selected: string | null
+  amount_vnd: number
+  amount_usd: number | null
+  fx_rate: number | null
+  order_code: string
+  status: 'pending' | 'approved' | 'rejected'
+  note: string | null
+  created_at: string
+  reviewed_at: string | null
+  reviewed_by: string | null
+  // Only present when the API joins profiles for the admin list view.
+  user_email?: string
+  user_full_name?: string | null
+}
