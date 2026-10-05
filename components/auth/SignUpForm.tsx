@@ -63,7 +63,7 @@ export function SignUpForm() {
         <div className="text-2xl">✓</div>
         <h2 className="text-lg font-semibold text-green-800">Account Created!</h2>
         <p className="text-green-700">
-          Please check your email to confirm your account. You&apos;ll be redirected shortly.
+          Account created. You can sign in now. You&apos;ll be redirected shortly.
         </p>
       </div>
     )

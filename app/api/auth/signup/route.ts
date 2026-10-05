@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // User needs to confirm email
+      email_confirm: true, // Auto-confirm: admin.createUser không gửi mail xác nhận nên false = user kẹt vĩnh viễn
       user_metadata: {
         full_name: fullName,
       },
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        message: 'User created successfully. Please check your email to confirm your account.',
+        message: 'User created successfully. You can sign in now.',
         user: {
           id: authData.user?.id,
           email: authData.user?.email,
